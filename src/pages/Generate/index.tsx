@@ -76,11 +76,11 @@ export default function Generate() {
   // check whether the user has approved the router on the tokens
   const [approvalA, approveACallback] = useApproveCallback(
     tryParseAmount(delta?.totalUnd.toString(), currencyA ?? undefined),
-    ANTIMATTER_ADDRESS
+    chainId ? ANTIMATTER_ADDRESS[chainId] : undefined
   )
   const [approvalB, approveBCallback] = useApproveCallback(
     tryParseAmount(delta?.totalCur.toString(), currencyB ?? undefined),
-    ANTIMATTER_ADDRESS
+    chainId ? ANTIMATTER_ADDRESS[chainId] : undefined
   )
 
   const addTransaction = useTransactionAdder()
