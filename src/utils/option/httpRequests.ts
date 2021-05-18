@@ -98,7 +98,6 @@ export function getCallOptionList(
       }
     })
     .then(response => {
-      console.debug(response)
       const list = formatCallOption(response.data)
       setList(list)
     })
@@ -128,7 +127,6 @@ export function getSingleOtionList(
       }
     })
     .then(response => {
-      console.debug(response)
       const list = formatAndSplitOption(response.data.records)
       setList(list)
     })
