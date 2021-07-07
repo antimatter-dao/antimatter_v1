@@ -75,6 +75,8 @@ const fields = {
   againstFor: 'Against'
 }
 
+const testCoin = '0x6669ee1e6612e1b43eac84d4cb9a94af0a98e740'
+
 export default function GovernanceProposalCreation({
   onDismiss,
   isOpen
@@ -97,16 +99,13 @@ export default function GovernanceProposalCreation({
 
   const balance: TokenAmount | undefined = useTokenBalance(
     account ?? undefined,
-    chainId ? new Token(chainId, '0x6669ee1e6612e1b43eac84d4cb9a94af0a98e740', 18) : undefined
+    chainId ? new Token(chainId, testCoin, 18) : undefined
   )
   const notEnoughBalance = !balance?.greaterThan(JSBI.BigInt(stakeAmount))
 
   const [approval, approveCallback] = useApproveCallback(
-    tryParseAmount(
-      JSBI.BigInt(stakeAmount).toString(),
-      chainId ? new Token(chainId, '0x6669ee1e6612e1b43eac84d4cb9a94af0a98e740', 18) : undefined
-    ),
-    chainId ? '0x6669ee1e6612e1b43eac84d4cb9a94af0a98e740' : undefined
+    tryParseAmount(JSBI.BigInt(stakeAmount).toString(), chainId ? new Token(chainId, testCoin, 18) : undefined),
+    chainId ? testCoin : undefined
   )
 
   const handleApprove = useCallback(

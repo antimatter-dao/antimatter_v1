@@ -107,7 +107,7 @@ export default function Governance() {
   const { list: governanceList, loading } = useGovernanceList()
   const [isCreationOpen, setIsCreationOpen] = useState(false)
   const history = useHistory()
-  console.log(governanceList)
+
   const handleCardClick = useCallback(id => () => history.push('governance/detail/' + id), [])
 
   const handleOpenCreation = useCallback(() => {
