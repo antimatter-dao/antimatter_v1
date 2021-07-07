@@ -15,7 +15,7 @@ import Modal from 'components/Modal'
 import { useGovernanceDetails, useUserStaking } from '../../hooks/useGovernanceDetail'
 import { JSBI, TokenAmount } from '@uniswap/sdk'
 import CurrencyInputPanel from 'components/CurrencyInputPanel'
-import { GOVERNANCE_ADDRESS, GOVERNANCE_TOKEN,FACTORY_CHAIN_ID } from '../../constants'
+import { GOVERNANCE_ADDRESS, GOVERNANCE_TOKEN, FACTORY_CHAIN_ID } from '../../constants'
 import { useCurrencyBalance } from '../../state/wallet/hooks'
 import { useWeb3React } from '@web3-react/core'
 import { tryParseAmount } from '../../state/swap/hooks'
@@ -107,7 +107,7 @@ const ModalButtonWrapper = styled(RowBetween)`
 `
 
 function toNumber(weiValue: string): string {
-  if (weiValue==='') return '-';
+  if (weiValue === '') return '-'
   return new TokenAmount(GOVERNANCE_TOKEN, JSBI.BigInt(weiValue)).toSignificant(1)
 }
 
@@ -116,7 +116,7 @@ export default function GovernancePageDetail({
     params: { governanceIndex }
   }
 }: RouteComponentProps<{ governanceIndex?: string }>) {
-  const { account,chainId } = useWeb3React()
+  const { account, chainId } = useWeb3React()
   const [selected, setSelected] = useState<VoteOption>(VoteOption.FOR)
   const [showConfirm, setShowConfirm] = useState(false)
   const [attemptingTxn, setAttemptingTxn] = useState<boolean>(false)
@@ -136,7 +136,7 @@ export default function GovernancePageDetail({
 
   const theme = useTheme()
 
-  const onClaim = useCallback( ()=> {
+  const onClaim = useCallback(() => {
     if (!contact || StatusOption.Live === data.status) {
       return
     }
@@ -148,7 +148,7 @@ export default function GovernancePageDetail({
 
       setTxHash(response.hash)
     })
-  }, [contact,data,governanceIndex, addTransaction])
+  }, [contact, data, governanceIndex, addTransaction])
 
   function calcVoteForPercentage(type: VoteOption, voteFor: string | number, voteAgainst: string | number): string {
     const count = JSBI.add(JSBI.BigInt(voteFor), JSBI.BigInt(voteAgainst))
@@ -159,7 +159,7 @@ export default function GovernancePageDetail({
     return percentage
   }
 
-  const onVote = useCallback(()=> {
+  const onVote = useCallback(() => {
     if (!contact || !inputValue) {
       return
     }
@@ -176,7 +176,7 @@ export default function GovernancePageDetail({
 
       setTxHash(response.hash)
     })
-  }, [contact, inputValue, governanceIndex,addTransaction,selected])
+  }, [contact, inputValue, governanceIndex, addTransaction, selected])
 
   const handleBackClick = useCallback(() => history.push('/governance'), [history])
 
@@ -212,7 +212,7 @@ export default function GovernancePageDetail({
 
   const claimBtn = useMemo(() => {
     const ret = {
-      text : <>Claim</>,
+      text: <>Claim</>,
       disable: true,
       event: onClaim
     }
@@ -224,8 +224,8 @@ export default function GovernancePageDetail({
     }
     if (chainId !== FACTORY_CHAIN_ID) {
       ret.text = <>Please switch to ETH chain</>
-      ret.disable = true;
-      return ret;
+      ret.disable = true
+      return ret
     }
 
     if (!JSBI.greaterThan(JSBI.BigInt(userStaking.totalStake), JSBI.BigInt(0))) {
@@ -233,18 +233,20 @@ export default function GovernancePageDetail({
       return ret
     }
 
-    if (getDeltaTime( userStaking.stakeEndTime)) {
-      ret.text = (<>
+    if (getDeltaTime(userStaking.stakeEndTime)) {
+      ret.text = (
+        <>
           <Timer timer={+userStaking.stakeEndTime} onZero={() => {}} />
           {' can claim'}
-        </>);
+        </>
+      )
       ret.disable = true
-      return ret;
+      return ret
     }
 
     ret.disable = false
     return ret
-  }, [data, onClaim, userStaking,chainId])
+  }, [onClaim, userStaking, chainId])
 
   const btnStatus = useMemo(() => {
     const ret = {
@@ -264,8 +266,8 @@ export default function GovernancePageDetail({
     }
     if (chainId !== FACTORY_CHAIN_ID) {
       ret.text = 'Please switch to ETH chain'
-      ret.disable = true;
-      return ret;
+      ret.disable = true
+      return ret
     }
 
     if (!inputValue || (inputValue && !inputValue.greaterThan(JSBI.BigInt(0)))) {
@@ -291,7 +293,7 @@ export default function GovernancePageDetail({
     ret.event = handleSubmit
     ret.disable = false
     return ret
-  }, [inputValue, enoughBalance, data, approval, handleSubmit ,approveCallback, chainId])
+  }, [inputValue, enoughBalance, data, approval, handleSubmit, approveCallback, chainId])
 
   if (!data) {
     return null
@@ -311,7 +313,7 @@ export default function GovernancePageDetail({
               Back
             </ButtonEmpty>
           </HideSmall>
-          <Live gray={ StatusOption.Live !== status ? "gray" : ''}>{status}</Live>
+          <Live gray={StatusOption.Live !== status ? 'gray' : ''}>{status}</Live>
           <ShowSmall>
             <ButtonEmpty width="auto" padding="0" onClick={handleBackClick}>
               <X color={theme.text3} size={24} />
@@ -340,7 +342,7 @@ export default function GovernancePageDetail({
           </AutoColumn>
           <AutoColumn style={{ width: '100%' }} gap="16px">
             <RowBetween>
-              <AutoColumn gap="4px" style={{width: 220}}>
+              <AutoColumn gap="4px" style={{ width: 220 }}>
                 <TYPE.smallGray fontSize={14}>Votes For:</TYPE.smallGray>
                 <TYPE.mediumHeader>
                   {toNumber(voteFor)} &nbsp;MATTER
@@ -354,7 +356,7 @@ export default function GovernancePageDetail({
                   </TYPE.largeHeader>
                 </OutlineCard>
               </HideSmall>
-              <AutoColumn gap="4px" style={{width: 220, textAlign: 'right'}}>
+              <AutoColumn gap="4px" style={{ width: 220, textAlign: 'right' }}>
                 <TYPE.smallGray fontSize={14}>Votes Against:</TYPE.smallGray>
                 <TYPE.mediumHeader>
                   {toNumber(voteAgainst)} &nbsp;MATTER
@@ -377,7 +379,7 @@ export default function GovernancePageDetail({
               <TYPE.small textAlign="center">
                 Time left : <Timer timer={+timeLeft} onZero={() => {}} />
               </TYPE.small>
-              <VoteOptionWrapper style={{ padding: '0 20px',marginBottom: -15, fontSize: 12 }}>
+              <VoteOptionWrapper style={{ padding: '0 20px', marginBottom: -15, fontSize: 12 }}>
                 <span>My votes: {toNumber(userStaking.totalYes)}</span>
                 <span>My votes: {toNumber(userStaking.totalNo)}</span>
               </VoteOptionWrapper>

@@ -21,12 +21,12 @@ const Wrapper = styled.div`
   margin-bottom: auto;
   max-width: 1280px;
 `
-const VerticalDivider = styled.div`
-  width: 1px;
-  height: 36px;
-  border-right: 1px solid ${({ theme }) => theme.bg4};
-  margin: 0 24px;
-`
+// const VerticalDivider = styled.div`
+//   width: 1px;
+//   height: 36px;
+//   border-right: 1px solid ${({ theme }) => theme.bg4};
+//   margin: 0 24px;
+// `
 const Divider = styled.div`
   width: 100%;
   height: 1px;
@@ -137,7 +137,6 @@ export default function Governance() {
                 {balance?.toSignificant()} Votes
               </TYPE.smallHeader>
             </RowFixed>
-            <VerticalDivider />
           </RowFixed>
           <HideSmall>
             <ButtonOutlinedPrimary onClick={handleOpenCreation} width="180px">
