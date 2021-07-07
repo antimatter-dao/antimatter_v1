@@ -386,13 +386,17 @@ export default function GovernancePageDetail({
               <VoteOptionWrapper style={{ padding: '0 20px' }}>
                 <VoteOptionCard selected={selected === VoteOption.FOR} onClick={handleSelect(VoteOption.FOR)}>
                   Vote For
-                  <TYPE.small>{selected === VoteOption.FOR && Number(voteValue) ? voteValue : '-'} MATTER</TYPE.small>
+                  {status ===StatusOption.Live && selected === VoteOption.FOR && 
+                  <TYPE.small>{Number(voteValue) ? voteValue : '-'} MATTER</TYPE.small>
+                  }
                 </VoteOptionCard>
                 <VoteOptionCard selected={selected === VoteOption.AGAINST} onClick={handleSelect(VoteOption.AGAINST)}>
                   Vote Against
+                  {status ===StatusOption.Live && selected === VoteOption.AGAINST && 
                   <TYPE.small>
-                    {selected === VoteOption.AGAINST && Number(voteValue) ? voteValue : '-'} MATTER
+                    { Number(voteValue) ? voteValue : '-'} MATTER
                   </TYPE.small>
+                  }
                 </VoteOptionCard>
               </VoteOptionWrapper>
               {data.status === StatusOption.Live && (
@@ -419,12 +423,15 @@ export default function GovernancePageDetail({
               <TYPE.smallGray textAlign="center">
                 {selected === VoteOption.FOR ? contents?.agreeFor : contents?.againstFor}
               </TYPE.smallGray>
-              <ButtonPrimary width="320px" onClick={btnStatus.event} disabled={btnStatus.disable}>
+              {status === StatusOption.Live ? 
+              (<ButtonPrimary width="320px" onClick={btnStatus.event} disabled={btnStatus.disable}>
                 {btnStatus.text}
-              </ButtonPrimary>
+              </ButtonPrimary>) : 
+              (
               <ButtonPrimary width="320px" onClick={claimBtn.event} disabled={claimBtn.disable}>
                 {claimBtn.text}
               </ButtonPrimary>
+              )}
             </AutoColumn>
           </GradientCard>
         </AutoColumn>
