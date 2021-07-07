@@ -24,7 +24,7 @@ import { useGovernanceContract } from 'hooks/useContract'
 import { useTransactionAdder } from 'state/transactions/hooks'
 import { TransactionResponse } from '@ethersproject/abstract-provider'
 import { RouteComponentProps, useHistory } from 'react-router-dom'
-import { Timer } from 'components/Timer/intex'
+import { getDeltaTime, Timer } from 'components/Timer/intex'
 
 enum VoteOption {
   FOR = 'for',
@@ -172,6 +172,7 @@ export default function GovernancePageDetail({
       addTransaction(response, {
         summary: 'vote'
       })
+      setVoteValue('')
 
       setTxHash(response.hash)
     })
@@ -211,23 +212,33 @@ export default function GovernancePageDetail({
 
   const claimBtn = useMemo(() => {
     const ret = {
-      text: 'Claim',
+      text : <>Claim</>,
       disable: true,
       event: onClaim
     }
-    if (StatusOption.Live === data.status || !JSBI.greaterThan(JSBI.BigInt(userStaking.totalStake), JSBI.BigInt(0))) {
-      ret.disable = true
-      return ret
-    }
 
     if (!chainId) {
-      ret.text = 'Connect wallet'
+      ret.text = <>Connect wallet</>
       ret.disable = true
       return ret
     }
     if (chainId !== FACTORY_CHAIN_ID) {
-      ret.text = 'Please switch to ETH chain'
+      ret.text = <>Please switch to ETH chain</>
       ret.disable = true;
+      return ret;
+    }
+
+    if (!JSBI.greaterThan(JSBI.BigInt(userStaking.totalStake), JSBI.BigInt(0))) {
+      ret.disable = true
+      return ret
+    }
+
+    if (getDeltaTime( userStaking.stakeEndTime)) {
+      ret.text = (<>
+          <Timer timer={+userStaking.stakeEndTime} onZero={() => {}} />
+          {' can claim'}
+        </>);
+      ret.disable = true
       return ret;
     }
 

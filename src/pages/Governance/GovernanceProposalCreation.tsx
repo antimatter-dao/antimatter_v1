@@ -157,8 +157,8 @@ export default function GovernanceProposalCreation({
     const args = [
       input.title,
       `{"summary":"${input.summary}","details":"${input.details}","agreeFor":"${input.agreeFor}","againstFor":"${input.againstFor}"}`,
-      JSBI.BigInt(activeStep + 3).toString(),
-      JSBI.BigInt(stakeAmount).toString()
+      JSBI.BigInt((activeStep + 3)*60*60*24).toString(),
+      tryParseAmount(JSBI.BigInt(stakeAmount).toString(), chainId ? new Token(chainId, testCoin, 18) : undefined)?.raw.toString()
     ]
 
     setAttemptingTxn(true)
@@ -181,7 +181,7 @@ export default function GovernanceProposalCreation({
           console.error('---->', error)
         }
       })
-  }, [activeStep, addTransaction, approval, governanceCreateCallback, handleApprove, input])
+  }, [activeStep, addTransaction, approval, governanceCreateCallback, chainId, handleApprove, input])
 
   return (
     <>

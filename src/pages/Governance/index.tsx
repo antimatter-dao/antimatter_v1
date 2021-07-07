@@ -12,6 +12,9 @@ import { GovernanceData, useGovernanceList } from '../../hooks/useGovernanceDeta
 import Loader from 'assets/svg/antimatter_background_logo.svg'
 import { useHistory } from 'react-router-dom'
 import { Timer } from 'components/Timer/intex'
+import { GOVERNANCE_TOKEN } from '../../constants'
+import { useCurrencyBalance } from 'state/wallet/hooks'
+import { useWeb3React } from '@web3-react/core'
 
 const Wrapper = styled.div`
   width: 100%;
@@ -104,11 +107,12 @@ display: flex
 `
 
 export default function Governance() {
+  const { account } = useWeb3React()
   const { list: governanceList, loading } = useGovernanceList()
   const [isCreationOpen, setIsCreationOpen] = useState(false)
   const history = useHistory()
-
-  const handleCardClick = useCallback(id => () => history.push('governance/detail/' + id), [])
+  const balance = useCurrencyBalance(account ?? undefined, GOVERNANCE_TOKEN)
+  const handleCardClick = useCallback(id => () => history.push('governance/detail/' + id), [history])
 
   const handleOpenCreation = useCallback(() => {
     setIsCreationOpen(true)
@@ -130,7 +134,7 @@ export default function Governance() {
                 Your Voting Power:
               </TYPE.smallGray>
               <TYPE.smallHeader fontSize={20} fontWeight={500}>
-                0,3 Votes
+                {balance?.toSignificant()} Votes
               </TYPE.smallHeader>
             </RowFixed>
             <VerticalDivider />
@@ -155,7 +159,7 @@ export default function Governance() {
 }
 
 function GovernanceCard({
-  data: { title, id, creator, timeLeft, voteFor, voteAgainst, contents },
+  data: { title, id, creator, timeLeft, voteFor, voteAgainst, contents ,status},
   onClick
 }: {
   data: GovernanceData
@@ -165,7 +169,7 @@ function GovernanceCard({
     <AppBody maxWidth="340px" gradient1={true} isCard style={{ cursor: 'pointer' }}>
       <AutoColumn gap="16px" onClick={onClick}>
         <RowBetween>
-          {true ? <Live>Live</Live> : <div />}
+          <Live gray={ 'Live' !== status ? "gray" : ''}>{status}</Live>
           <TYPE.smallGray>#{id}</TYPE.smallGray>
         </RowBetween>
         <AutoColumn gap="4px">

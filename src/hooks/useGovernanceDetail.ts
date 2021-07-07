@@ -16,6 +16,7 @@ interface Users {
   totalNo: string
   totalStake: string
   totalYes: string
+  stakeEndTime: number
 }
 
 enum StatusOption {
@@ -81,7 +82,8 @@ export function useGovernanceList(): { list: GovernanceData[] | undefined; loadi
     proposeIndexes.push([i])
   }
   const proposesListRes = useSingleContractMultipleData(contact, 'proposes', proposeIndexes)
-  //const resultsRes = useSingleCallResult(contact, 'getResult', [index])
+  const proposesStatusRes = useSingleContractMultipleData(contact, 'getResult', proposeIndexes)
+
   const isLoading = useRef(true)
   const list = useMemo(
     () =>
@@ -97,6 +99,17 @@ export function useGovernanceList(): { list: GovernanceData[] | undefined; loadi
         const details: string = result ? JSON.parse(result?.content).details : ''
         const agreeFor: string = result ? JSON.parse(result?.content).agreeFor : ''
         const againstFor: string = result ? JSON.parse(result?.content).againstFor : ''
+        let status: StatusOption = StatusOption.Faild
+        if (proposesStatusRes && 
+          proposesStatusRes[index] && 
+          proposesStatusRes[index].result) {
+            const _status = proposesStatusRes[index].result ?? '2'
+            status = _status.toString() === '1'
+                        ? StatusOption.Success
+                          : _status.toString() === '2'
+                          ? StatusOption.Faild
+                        : StatusOption.Live
+        }
 
         return {
           id: index.toString(),
@@ -111,10 +124,11 @@ export function useGovernanceList(): { list: GovernanceData[] | undefined; loadi
             details,
             agreeFor,
             againstFor
-          }
+          },
+          status,
         }
-      }),
-    [proposesListRes]
+      }).reverse(),
+    [proposesListRes,proposesStatusRes]
   )
   return { list, loading: isLoading.current }
 }
@@ -130,7 +144,8 @@ export function useUserStaking(proposeid: string | number | undefined): Users {
     () => ({
       totalNo: res ? res.totalNo.toString() : '',
       totalStake: res ? res.totalStake.toString() : '',
-      totalYes: res ? res.totalYes.toString() : ''
+      totalYes: res ? res.totalYes.toString() : '',
+      stakeEndTime: res ? parseInt(res.stakeEndTime.toString()) : 0,
     }),
     [res]
   )
