@@ -166,13 +166,13 @@ export default function GovernancePageDetail({
     const args = [governanceIndex, selected === VoteOption.FOR ? 1 : 2, inputValue?.raw.toString()]
 
     setAttemptingTxn(true)
+    setVoteValue('')
 
     contact.vote(...args, {}).then((response: TransactionResponse) => {
       setAttemptingTxn(false)
       addTransaction(response, {
         summary: 'vote'
       })
-      setVoteValue('')
 
       setTxHash(response.hash)
     })
