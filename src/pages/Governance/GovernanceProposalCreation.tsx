@@ -1,29 +1,26 @@
 import { TokenAmount, JSBI, Token } from '@uniswap/sdk'
 import React, { useCallback, useState } from 'react'
-import { TransactionResponse } from '@ethersproject/providers'
+import { useWeb3React } from '@web3-react/core'
 import { X } from 'react-feather'
 import styled from 'styled-components'
 import { makeStyles } from '@material-ui/core/styles'
 import Stepper from '@material-ui/core/Stepper'
 import Step from '@material-ui/core/Step'
 import StepButton from '@material-ui/core/StepButton'
-import { StyledDialogOverlay } from 'components/Modal'
 import useTheme from 'hooks/useTheme'
 import { RowBetween } from 'components/Row'
 import { ButtonEmpty, ButtonPrimary, ButtonOutlinedPrimary } from 'components/Button'
 import { AutoColumn } from 'components/Column'
 import { TYPE } from 'theme'
-import { useTransition } from 'react-spring'
 import TextInput from 'components/TextInput'
 import { useTokenBalance } from 'state/wallet/hooks'
-import { useActiveWeb3React } from 'hooks'
-import { useAntiMatterGovernanceContract } from 'hooks/useContract'
-import { calculateGasMargin } from 'utils'
 import TransactionConfirmationModal from 'components/TransactionConfirmationModal'
 import { SubmittedView } from 'components/ModalViews'
 import { useTransactionAdder } from 'state/transactions/hooks'
 import { useApproveCallback } from 'hooks/useApproveCallback'
 import { tryParseAmount } from 'state/swap/hooks'
+import { useGovernanceCreation } from 'hooks/useGovernanceDetail'
+import StaticOverlay from 'components/Modal/StaticOverlay'
 
 const Wrapper = styled.div`
   width: 920px;
@@ -68,7 +65,15 @@ const ModalButtonWrapper = styled(RowBetween)`
 `}
 `
 
-const stakeAmount = 220
+const stakeAmount = 200
+
+const fields = {
+  title: 'Title',
+  details: 'Details',
+  summary: 'Summary',
+  agreeFor: 'For',
+  againstFor: 'Against'
+}
 
 export default function GovernanceProposalCreation({
   onDismiss,
@@ -83,24 +88,19 @@ export default function GovernanceProposalCreation({
   const [error, setError] = useState('')
   const [submitError, setSubmitError] = useState('')
   const theme = useTheme()
-  const fadeTransition = useTransition(isOpen, null, {
-    config: { duration: 200 },
-    from: { opacity: 0 },
-    enter: { opacity: 1 },
-    leave: { opacity: 0 }
-  })
 
+  const governanceCreateCallback = useGovernanceCreation()
   const addTransaction = useTransactionAdder()
   const [attemptingTxn, setAttemptingTxn] = useState<boolean>(false)
   const [txHash, setTxHash] = useState<string>('')
+  const { chainId, account } = useWeb3React()
 
-  const { account, chainId, library } = useActiveWeb3React()
   const balance: TokenAmount | undefined = useTokenBalance(
     account ?? undefined,
     chainId ? new Token(chainId, '0x6669ee1e6612e1b43eac84d4cb9a94af0a98e740', 18) : undefined
   )
   const notEnoughBalance = !balance?.greaterThan(JSBI.BigInt(stakeAmount))
-  const governanceContract = useAntiMatterGovernanceContract()
+
   const [approval, approveCallback] = useApproveCallback(
     tryParseAmount(
       JSBI.BigInt(stakeAmount).toString(),
@@ -133,7 +133,7 @@ export default function GovernanceProposalCreation({
     let error = ''
     for (const pair of formData) {
       if (!pair[1]) {
-        error += ', ' + pair[0]
+        error += ', ' + fields[pair[0] as keyof typeof fields]
       }
       input[pair[0]] = pair[1]
     }
@@ -146,15 +146,11 @@ export default function GovernanceProposalCreation({
   }, [])
 
   const onCreate = useCallback(async () => {
-    if (!chainId || !library || !account) return
+    if (!governanceCreateCallback) return
     if (!approval) {
       handleApprove(onCreate)
       return
     }
-
-    const estimate = governanceContract?.estimateGas.propose
-
-    const method: (...args: any) => Promise<TransactionResponse> = governanceContract?.propose
 
     const args = [
       input.title,
@@ -165,30 +161,25 @@ export default function GovernanceProposalCreation({
 
     setAttemptingTxn(true)
 
-    if (estimate) {
-      await estimate(...args, {})
-        .then(estimatedGasLimit =>
-          method(...args, {
-            gasLimit: calculateGasMargin(estimatedGasLimit)
-          }).then(response => {
-            setAttemptingTxn(false)
-            setInput({ title: '', summary: '', agreeFor: '', againstFor: '' })
-            addTransaction(response, {
-              summary: 'Create proposal "' + input.title + '"'
-            })
-            setTxHash(response.hash)
-          })
-        )
-        .catch(error => {
-          setAttemptingTxn(false)
-          setTxHash('error')
-          if (error?.code !== 4001) {
-            setSubmitError(error)
-            console.error('---->', error)
-          }
+    const res = governanceCreateCallback(args)
+    res
+      .then(response => {
+        setAttemptingTxn(false)
+        setInput({ title: '', summary: '', agreeFor: '', againstFor: '' })
+        addTransaction(response, {
+          summary: 'Create proposal "' + input.title + '"'
         })
-    }
-  }, [account, activeStep, addTransaction, approval, chainId, governanceContract, handleApprove, input, library])
+        setTxHash(response.hash)
+      })
+      .catch(error => {
+        setAttemptingTxn(false)
+        setTxHash('error')
+        if (error?.code !== 4001) {
+          setSubmitError(error)
+          console.error('---->', error)
+        }
+      })
+  }, [activeStep, addTransaction, approval, governanceCreateCallback, handleApprove, input])
 
   return (
     <>
@@ -203,77 +194,61 @@ export default function GovernanceProposalCreation({
           <SubmittedModalContent onDismiss={handleDismissConfirmation} hash={txHash} isError={!!submitError} />
         )}
       />
-      {fadeTransition.map(
-        ({ item, key, props }) =>
-          item && (
-            <StyledDialogOverlay
-              key={key}
-              style={props}
-              color={theme.bg1}
-              unstable_lockFocusAcrossFrames={false}
-              overflow="auto"
-              alignitems="flex-start"
-            >
-              <Wrapper>
-                <form name="GovernanceCreationForm" id="GovernanceCreationForm" onSubmit={handleSubmit}>
-                  <AutoColumn gap="36px">
-                    <RowBetween>
-                      <TYPE.largeHeader>Create a New Proposal</TYPE.largeHeader>
-                      <ButtonEmpty width="auto" padding="0" onClick={onDismiss}>
-                        <X color={theme.text3} size={24} />
-                      </ButtonEmpty>
-                    </RowBetween>
-                    <TYPE.smallHeader fontSize={22}>Proposal Description</TYPE.smallHeader>
-                    <TextInput
-                      label="Title"
-                      placeholder="Enter your project name (Keep it Below 10 words)"
-                      disabled={notEnoughBalance}
-                      name="title"
-                    ></TextInput>
-                    <TextInput
-                      label="Summary"
-                      placeholder="What will be done if the proposal is implement (Keep it below 200 words)"
-                      textarea
-                      name="summary"
-                      disabled={notEnoughBalance}
-                    ></TextInput>
-                    <TextInput
-                      label="Details"
-                      placeholder="Write a Longer motivation with links and references if necessary"
-                      disabled={notEnoughBalance}
-                      name="details"
-                    ></TextInput>
-                    <TYPE.smallHeader fontSize={22}>Proposal Settings</TYPE.smallHeader>
-                    <TextInput
-                      label="For"
-                      placeholder="Formulate clear for position"
-                      disabled={notEnoughBalance}
-                      name="agreeFor"
-                    ></TextInput>
-                    <TextInput
-                      label="Against"
-                      placeholder="Formulate clear Against position"
-                      disabled={notEnoughBalance}
-                      name="againstFor"
-                    ></TextInput>
-                    <TYPE.smallHeader fontSize={22}>Proposal Timing</TYPE.smallHeader>
-                    <TYPE.darkGray>
-                      Please set a time frame for the proposal. Select the number of days below
-                    </TYPE.darkGray>
-                    <GovernanceTimeline activeStep={activeStep} onStep={handleStep} disabled={notEnoughBalance} />
-                    {error && <TYPE.body color={theme.red1}>{error}</TYPE.body>}
-                    <ButtonPrimary type="submit" disabled={notEnoughBalance}>
-                      Determine
-                    </ButtonPrimary>
-                  </AutoColumn>
-                </form>
-                {notEnoughBalance && (
-                  <Warning>You must have {stakeAmount + 100000} MAT Token to create a proposal</Warning>
-                )}
-              </Wrapper>
-            </StyledDialogOverlay>
-          )
-      )}
+      <StaticOverlay isOpen={isOpen}>
+        <Wrapper>
+          <form name="GovernanceCreationForm" id="GovernanceCreationForm" onSubmit={handleSubmit}>
+            <AutoColumn gap="36px">
+              <RowBetween>
+                <TYPE.largeHeader>Create a New Proposal</TYPE.largeHeader>
+                <ButtonEmpty width="auto" padding="0" onClick={onDismiss}>
+                  <X color={theme.text3} size={24} />
+                </ButtonEmpty>
+              </RowBetween>
+              <TYPE.smallHeader fontSize={22}>Proposal Description</TYPE.smallHeader>
+              <TextInput
+                label={fields.title}
+                placeholder="Enter your project name (Keep it Below 10 words)"
+                disabled={notEnoughBalance}
+                name="title"
+              ></TextInput>
+              <TextInput
+                label={fields.summary}
+                placeholder="What will be done if the proposal is implement (Keep it below 200 words)"
+                textarea
+                name="summary"
+                disabled={notEnoughBalance}
+              ></TextInput>
+              <TextInput
+                label={fields.details}
+                placeholder="Write a Longer motivation with links and references if necessary"
+                disabled={notEnoughBalance}
+                name="details"
+              ></TextInput>
+              <TYPE.smallHeader fontSize={22}>Proposal Settings</TYPE.smallHeader>
+              <TextInput
+                label={fields.agreeFor}
+                placeholder="Formulate clear for position"
+                disabled={notEnoughBalance}
+                name="agreeFor"
+              ></TextInput>
+              <TextInput
+                label={fields.againstFor}
+                placeholder="Formulate clear Against position"
+                disabled={notEnoughBalance}
+                name="againstFor"
+              ></TextInput>
+              <TYPE.smallHeader fontSize={22}>Proposal Timing</TYPE.smallHeader>
+              <TYPE.darkGray>Please set a time frame for the proposal. Select the number of days below</TYPE.darkGray>
+              <GovernanceTimeline activeStep={activeStep} onStep={handleStep} disabled={notEnoughBalance} />
+              {error && <TYPE.body color={theme.red1}>{error}</TYPE.body>}
+              <ButtonPrimary type="submit" disabled={notEnoughBalance} style={{ maxWidth: 416, margin: '0 auto' }}>
+                Determine
+              </ButtonPrimary>
+            </AutoColumn>
+          </form>
+          {notEnoughBalance && <Warning>You must have {stakeAmount + 100000} MATTER to create a proposal</Warning>}
+        </Wrapper>
+      </StaticOverlay>
     </>
   )
 }
@@ -366,8 +341,8 @@ function ConfirmationModalContent({ onDismiss, onConfirm }: { onDismiss: () => v
         </ButtonEmpty>
       </RowBetween>
 
-      <TYPE.body fontSize={24}>
-        You will stack 200 MAT Token
+      <TYPE.body fontSize={16}>
+        You will stack 200 MATTER
         <br /> to submit this proposal
       </TYPE.body>
       <ModalButtonWrapper>

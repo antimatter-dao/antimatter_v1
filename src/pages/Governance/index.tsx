@@ -1,14 +1,17 @@
 import React, { useCallback, useState } from 'react'
+import { CurrencyAmount } from '@uniswap/sdk'
+import { XCircle } from 'react-feather'
 import styled from 'styled-components'
 import { RowBetween, RowFixed } from 'components/Row'
 import { AutoColumn } from 'components/Column'
-import { HideSmall, TYPE } from 'theme'
+import { HideSmall, TYPE, AnimatedImg, AnimatedWrapper } from 'theme'
 import { ButtonOutlinedPrimary } from 'components/Button'
 import AppBody from 'pages/AppBody'
-import GovernanceDetail from './GovernanceDetail'
 import GovernanceProposalCreation from './GovernanceProposalCreation'
 import { GovernanceData, useGovernanceList } from '../../hooks/useGovernanceDetail'
-import { CurrencyAmount } from '@uniswap/sdk'
+import Loader from 'assets/svg/antimatter_background_logo.svg'
+import { useHistory } from 'react-router-dom'
+import { Timer } from 'components/Timer/intex'
 
 const Wrapper = styled.div`
   width: 100%;
@@ -101,22 +104,12 @@ display: flex
 `
 
 export default function Governance() {
-  const governanceList = useGovernanceList()
-  console.log('governanceList', governanceList)
-  const [isCardOpen, setIsCardOpen] = useState(false)
+  const { list: governanceList, loading } = useGovernanceList()
   const [isCreationOpen, setIsCreationOpen] = useState(false)
-  const [cardDetail, setCardDetail] = useState<undefined | GovernanceData>(undefined)
-  const handleCardClick = useCallback(
-    (data: GovernanceData) => () => {
-      setIsCardOpen(true)
-      setCardDetail(data)
-    },
-    []
-  )
-  const handleCloseCard = useCallback(() => {
-    setIsCardOpen(false)
-    setCardDetail(undefined)
-  }, [])
+  const history = useHistory()
+  console.log(governanceList)
+  const handleCardClick = useCallback(id => () => history.push('governance/detail/' + id), [])
+
   const handleOpenCreation = useCallback(() => {
     setIsCreationOpen(true)
   }, [])
@@ -129,7 +122,6 @@ export default function Governance() {
   return (
     <>
       <GovernanceProposalCreation isOpen={isCreationOpen} onDismiss={handleCloseCreation} />
-      <GovernanceDetail isOpen={isCardOpen} onDismiss={handleCloseCard} data={cardDetail} />
       <Wrapper id="governance">
         <RowBetween style={{ padding: '45px 25px' }}>
           <RowFixed>
@@ -151,8 +143,9 @@ export default function Governance() {
         </RowBetween>
         <ContentWrapper>
           {governanceList &&
-            governanceList.map(data => <GovernanceCard data={data} key={data.id} onClick={handleCardClick(data)} />)}
+            governanceList.map(data => <GovernanceCard data={data} key={data.id} onClick={handleCardClick(data.id)} />)}
         </ContentWrapper>
+        <AlternativeDisplay count={governanceList ? governanceList.length : undefined} loading={loading} />
       </Wrapper>
       <MobileCreate>
         <ButtonOutlinedPrimary onClick={handleOpenCreation}>+ Create Proposal</ButtonOutlinedPrimary>
@@ -198,9 +191,30 @@ function GovernanceCard({
         </AutoColumn>
         <DividerThin />
         <TYPE.small fontWeight={500} style={{ textAlign: 'center', margin: '-4px 0 -10px' }}>
-          Time left : {timeLeft}
+          Time left : <Timer timer={+timeLeft} onZero={() => {}} />
         </TYPE.small>
       </AutoColumn>
     </AppBody>
+  )
+}
+
+export function AlternativeDisplay({ count, loading }: { count: number | undefined; loading: boolean }) {
+  return (
+    <AutoColumn justify="center" style={{ marginTop: 100 }}>
+      {!loading && count === 0 && (
+        <AutoColumn justify="center" gap="20px">
+          <XCircle size={40} strokeWidth={1} />
+          <TYPE.body>There is no proposal at the moment</TYPE.body>
+          <TYPE.body>Please try again later or create one yourself</TYPE.body>
+        </AutoColumn>
+      )}
+      {loading && (
+        <AnimatedWrapper>
+          <AnimatedImg>
+            <img src={Loader} alt="loading-icon" />
+          </AnimatedImg>
+        </AnimatedWrapper>
+      )}
+    </AutoColumn>
   )
 }

@@ -5,7 +5,7 @@ import { AutoRow } from 'components/Row'
 import { TYPE } from 'theme'
 import useTheme from 'hooks/useTheme'
 
-const CustomInput = styled(StyledInput)<{ disabled?: boolean }>`
+const CustomInput = styled(StyledInput)<{ disabled?: boolean; error?: boolean }>`
   width: 100%;
   font-size: 16px;
   color: ${({ theme, disabled }) => (disabled ? theme.bg5 : theme.white)};
@@ -15,6 +15,7 @@ const CustomInput = styled(StyledInput)<{ disabled?: boolean }>`
   background-color: ${({ theme, disabled }) => (disabled ? 'rgba(255, 255, 255, 0.08)' : theme.bg2)};
   border-radius: 14px;
   height: 3rem;
+  border: 1px solid ${({ theme, error }) => (error ? theme.red1 : 'transpanret')};
 `
 
 export const CustomTextArea = styled.textarea<{ error?: boolean; fontSize?: string; align?: string }>`
@@ -26,6 +27,7 @@ export const CustomTextArea = styled.textarea<{ error?: boolean; fontSize?: stri
   border: none;
   padding: .5rem 1rem;
   border-radius: 14px;
+  border: 1px solid ${({ theme, error }) => (error ? theme.red1 : 'transpanret')};
   background-color: ${({ theme, disabled }) => (disabled ? 'rgba(255, 255, 255, 0.08)' : theme.bg2)};
   text-align: ${({ align }) => align && align};
   ::-webkit-search-decoration {
@@ -58,10 +60,11 @@ export const TextInput = React.memo(function InnerInput({
   textarea,
   disabled,
   name,
+  error,
   ...rest
 }: {
-  label?: string
   error?: boolean
+  label?: string
   fontSize?: string
   align?: 'right' | 'left'
   textarea?: boolean
@@ -88,6 +91,7 @@ export const TextInput = React.memo(function InnerInput({
           cols={50}
           disabled={disabled}
           name={name}
+          error={error}
         />
       ) : (
         <CustomInput
@@ -97,6 +101,7 @@ export const TextInput = React.memo(function InnerInput({
           placeholder={placeholder || 'text input'}
           spellCheck="true"
           disabled={disabled}
+          error={error}
         />
       )}
     </Container>
