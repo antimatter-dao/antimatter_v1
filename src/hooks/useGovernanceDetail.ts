@@ -55,7 +55,7 @@ export function useGovernanceDetails(index: string) {
         : resultRes.result.toString() === '2'
         ? StatusOption.Faild
         : StatusOption.Live
-      : StatusOption.Live
+      : StatusOption.Faild
   }
 
   return { data: ret, loading: proposesRes.loading }

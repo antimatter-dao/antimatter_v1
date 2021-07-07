@@ -9,6 +9,7 @@ import GovernanceDetail from './GovernanceDetail'
 import GovernanceProposalCreation from './GovernanceProposalCreation'
 import { GovernanceData, useGovernanceList } from '../../hooks/useGovernanceDetail'
 import { CurrencyAmount } from '@uniswap/sdk'
+import { useHistory } from 'react-router-dom'
 
 const Wrapper = styled.div`
   width: 100%;
@@ -47,15 +48,15 @@ export const ContentWrapper = styled.div`
   padding: 0 24px 0 82px
   `}
 `
-export const Live = styled.div`
-  color: ${({ theme }) => theme.green1};
+export const Live = styled.div<{ gray?: string; }>`
+  color: ${({ theme, gray }) => gray || theme.green1};
   display: flex;
   align-items: center;
   :before {
     content: "''";
     height: 8px;
     width: 8px;
-    background-color: ${({ theme }) => theme.green1};
+    background-color: ${({ theme, gray }) => gray || theme.green1};
     border-radius: 50%;
     margin-right: 8px;
   }
@@ -102,16 +103,18 @@ display: flex
 
 export default function Governance() {
   const governanceList = useGovernanceList()
-  console.log('governanceList', governanceList)
+  // console.log('governanceList', governanceList)
+  const history = useHistory()
   const [isCardOpen, setIsCardOpen] = useState(false)
   const [isCreationOpen, setIsCreationOpen] = useState(false)
   const [cardDetail, setCardDetail] = useState<undefined | GovernanceData>(undefined)
   const handleCardClick = useCallback(
     (data: GovernanceData) => () => {
-      setIsCardOpen(true)
-      setCardDetail(data)
+      setIsCardOpen(false)
+      setCardDetail(undefined)
+      history.push(`/governance/detail/${data?.id}`)
     },
-    []
+    [history]
   )
   const handleCloseCard = useCallback(() => {
     setIsCardOpen(false)

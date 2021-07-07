@@ -1,4 +1,4 @@
-import { TokenAmount, JSBI, Token } from '@uniswap/sdk'
+import { TokenAmount, JSBI } from '@uniswap/sdk'
 import React, { useCallback, useState } from 'react'
 import { TransactionResponse } from '@ethersproject/providers'
 import { X } from 'react-feather'
@@ -24,6 +24,7 @@ import { SubmittedView } from 'components/ModalViews'
 import { useTransactionAdder } from 'state/transactions/hooks'
 import { useApproveCallback } from 'hooks/useApproveCallback'
 import { tryParseAmount } from 'state/swap/hooks'
+import { GOVERNANCE_ADDRESS, GOVERNANCE_TOKEN } from '../../constants'
 
 const Wrapper = styled.div`
   width: 920px;
@@ -43,6 +44,9 @@ const Wrapper = styled.div`
   ${({ theme }) => theme.mediaWidth.upToSmall`
     padding: 0 24px;
     width: 100%;
+  `};
+  ${({ theme }) => theme.mediaWidth.upToLarge`
+  margin-bottom: 70px;
   `};
 `
 
@@ -97,16 +101,16 @@ export default function GovernanceProposalCreation({
   const { account, chainId, library } = useActiveWeb3React()
   const balance: TokenAmount | undefined = useTokenBalance(
     account ?? undefined,
-    chainId ? new Token(chainId, '0x6669ee1e6612e1b43eac84d4cb9a94af0a98e740', 18) : undefined
+    GOVERNANCE_TOKEN
   )
   const notEnoughBalance = !balance?.greaterThan(JSBI.BigInt(stakeAmount))
   const governanceContract = useAntiMatterGovernanceContract()
   const [approval, approveCallback] = useApproveCallback(
     tryParseAmount(
       JSBI.BigInt(stakeAmount).toString(),
-      chainId ? new Token(chainId, '0x6669ee1e6612e1b43eac84d4cb9a94af0a98e740', 18) : undefined
+      GOVERNANCE_TOKEN
     ),
-    chainId ? '0x6669ee1e6612e1b43eac84d4cb9a94af0a98e740' : undefined
+    GOVERNANCE_ADDRESS
   )
 
   const handleApprove = useCallback(

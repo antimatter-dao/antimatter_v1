@@ -15,7 +15,7 @@ import Modal from 'components/Modal'
 import { useGovernanceDetails, useUserStaking } from '../../hooks/useGovernanceDetail'
 import { JSBI, TokenAmount } from '@uniswap/sdk'
 import CurrencyInputPanel from 'components/CurrencyInputPanel'
-import { GOVERNANCE_ADDRESS, GOVERNANCE_TOKEN } from '../../constants'
+import { GOVERNANCE_ADDRESS, GOVERNANCE_TOKEN,FACTORY_CHAIN_ID } from '../../constants'
 import { useCurrencyBalance } from '../../state/wallet/hooks'
 import { useWeb3React } from '@web3-react/core'
 import { tryParseAmount } from '../../state/swap/hooks'
@@ -23,7 +23,7 @@ import { ApprovalState, useApproveCallback } from 'hooks/useApproveCallback'
 import { useGovernanceContract } from 'hooks/useContract'
 import { useTransactionAdder } from 'state/transactions/hooks'
 import { TransactionResponse } from '@ethersproject/abstract-provider'
-import { RouteComponentProps } from 'react-router-dom'
+import { RouteComponentProps, useHistory } from 'react-router-dom'
 
 enum VoteOption {
   FOR = 'for',
@@ -40,23 +40,27 @@ const Wrapper = styled.div`
   max-width: 1160px;
   border:1px solid ${({ theme }) => theme.bg3}
   margin-bottom: auto;
-  max-width: 1280px;
+  /* max-width: 1280px; */
   border-radius: 32px;
-  padding: 29px 52px;
+  padding: 20px 52px;
+  margin: 36px 0 50px;
   display: flex;
   flex-direction: column;
   jusitfy-content: cetner;
   align-items: center;
   ${({ theme }) => theme.mediaWidth.upToSmall`
   padding: 0 24px
-  `}
+  `};
+  ${({ theme }) => theme.mediaWidth.upToLarge`
+  margin-bottom: 70px;
+  `};
 `
 
 const VoteOptionCard = styled.div<{ selected?: boolean }>`
   border-radius: 14px;
   border: 1px solid ${({ theme, selected }) => (selected ? theme.primary1 : 'transparent')};
   background-color: ${({ theme }) => theme.translucent};
-  width: 140px;
+  width: 160px;
   height: 52px;
   display: flex;
   font-size: 14px;
@@ -102,6 +106,7 @@ const ModalButtonWrapper = styled(RowBetween)`
 `
 
 function toNumber(weiValue: string): string {
+  if (weiValue==='') return '-';
   return new TokenAmount(GOVERNANCE_TOKEN, JSBI.BigInt(weiValue)).toSignificant(1)
 }
 
@@ -110,7 +115,7 @@ export default function GovernancePageDetail({
     params: { governanceIndex }
   }
 }: RouteComponentProps<{ governanceIndex?: string }>) {
-  const { account } = useWeb3React()
+  const { account,chainId } = useWeb3React()
   const [selected, setSelected] = useState<VoteOption>(VoteOption.FOR)
   const [showConfirm, setShowConfirm] = useState(false)
   const [attemptingTxn, setAttemptingTxn] = useState<boolean>(false)
@@ -121,6 +126,7 @@ export default function GovernancePageDetail({
   const balance = useCurrencyBalance(account ?? undefined, GOVERNANCE_TOKEN)
   const contact = useGovernanceContract()
   const addTransaction = useTransactionAdder()
+  const history = useHistory()
   const userStaking = useUserStaking(governanceIndex)
 
   const inputValue = useMemo(() => {
@@ -129,7 +135,7 @@ export default function GovernancePageDetail({
 
   const theme = useTheme()
 
-  function onClaim() {
+  const onClaim = useCallback( ()=> {
     if (!contact || StatusOption.Live === data.status) {
       return
     }
@@ -141,7 +147,7 @@ export default function GovernancePageDetail({
 
       setTxHash(response.hash)
     })
-  }
+  }, [contact,data,governanceIndex, addTransaction])
 
   function calcVoteForPercentage(type: VoteOption, voteFor: string | number, voteAgainst: string | number): string {
     const count = JSBI.add(JSBI.BigInt(voteFor), JSBI.BigInt(voteAgainst))
@@ -152,7 +158,7 @@ export default function GovernancePageDetail({
     return percentage
   }
 
-  function onVote() {
+  const onVote = useCallback(()=> {
     if (!contact || !inputValue) {
       return
     }
@@ -168,7 +174,7 @@ export default function GovernancePageDetail({
 
       setTxHash(response.hash)
     })
-  }
+  }, [contact, inputValue, governanceIndex,addTransaction,selected])
 
   const handleSelect = useCallback(
     (option: VoteOption) => () => {
@@ -178,7 +184,7 @@ export default function GovernancePageDetail({
   )
   const handleSubmit = useCallback(() => {
     setShowConfirm(true)
-  }, [selected])
+  }, [])
 
   const handleNeutralDismiss = useCallback(() => {
     setNeutralSubmitted(false)
@@ -192,7 +198,7 @@ export default function GovernancePageDetail({
   const handleConfirmConfirmation = useCallback(() => {
     setAttemptingTxn(true)
     onVote()
-  }, [inputValue])
+  }, [onVote])
 
   const enoughBalance = useMemo(() => {
     return balance && inputValue && !balance.lessThan(inputValue)
@@ -211,9 +217,20 @@ export default function GovernancePageDetail({
       return ret
     }
 
+    if (!chainId) {
+      ret.text = 'Connect wallet'
+      ret.disable = true
+      return ret
+    }
+    if (chainId !== FACTORY_CHAIN_ID) {
+      ret.text = 'Please switch to ETH chain'
+      ret.disable = true;
+      return ret;
+    }
+
     ret.disable = false
     return ret
-  }, [data])
+  }, [data, onClaim, userStaking,chainId])
 
   const btnStatus = useMemo(() => {
     const ret = {
@@ -226,16 +243,16 @@ export default function GovernancePageDetail({
       ret.disable = true
       return ret
     }
-    if (!account) {
+    if (!chainId) {
       ret.text = 'Connect wallet'
       ret.disable = true
       return ret
     }
-    // if (chainId !== 1) {
-    //   ret.text = 'Please switch to ETH chain'
-    //   ret.disable = true;
-    //   return ret;
-    // }
+    if (chainId !== FACTORY_CHAIN_ID) {
+      ret.text = 'Please switch to ETH chain'
+      ret.disable = true;
+      return ret;
+    }
 
     if (!inputValue || (inputValue && !inputValue.greaterThan(JSBI.BigInt(0)))) {
       ret.text = 'Please input amount'
@@ -260,7 +277,7 @@ export default function GovernancePageDetail({
     ret.event = handleSubmit
     ret.disable = false
     return ret
-  }, [inputValue, enoughBalance, account, data, approval, approveCallback])
+  }, [inputValue, enoughBalance, data, approval, handleSubmit ,approveCallback, chainId])
 
   if (!data) {
     return null
@@ -275,12 +292,14 @@ export default function GovernancePageDetail({
       <Wrapper>
         <RowBetween>
           <HideSmall>
-            <ButtonEmpty width="106px" color={theme.text1}>
+            <ButtonEmpty width="106px" color={theme.text1} onClick={()=> {
+              history.replace('/governance')
+            }}>
               <ChevronLeft style={{ marginRight: 16 }} />
               Back
             </ButtonEmpty>
           </HideSmall>
-          <Live>{status}</Live>
+          <Live gray={ StatusOption.Live !== status ? "gray" : ''}>{status}</Live>
           <ShowSmall>
             <ButtonEmpty width="auto" padding="0">
               <X color={theme.text3} size={24} />
@@ -290,7 +309,7 @@ export default function GovernancePageDetail({
             <div style={{ width: 106 }} />
           </HideSmall>
         </RowBetween>
-        <AutoColumn style={{ minWidth: 760 }} justify="center" gap="40px">
+        <AutoColumn style={{ width: 760 }} justify="center" gap="40px">
           <AutoColumn gap="28px">
             <div>
               <TYPE.largeHeader fontSize={36} textAlign="center" fontWeight={300}>
@@ -303,10 +322,13 @@ export default function GovernancePageDetail({
             <TYPE.body lineHeight="25px" textAlign="center">
               {contents?.summary}
             </TYPE.body>
+            <TYPE.body lineHeight="25px" textAlign="center">
+              {contents?.details}
+            </TYPE.body>
           </AutoColumn>
           <AutoColumn style={{ width: '100%' }} gap="16px">
             <RowBetween>
-              <AutoColumn gap="4px">
+              <AutoColumn gap="4px" style={{width: 220}}>
                 <TYPE.smallGray fontSize={14}>Votes For:</TYPE.smallGray>
                 <TYPE.mediumHeader>
                   {toNumber(voteFor)} &nbsp;MATTER
@@ -320,7 +342,7 @@ export default function GovernancePageDetail({
                   </TYPE.largeHeader>
                 </OutlineCard>
               </HideSmall>
-              <AutoColumn gap="4px">
+              <AutoColumn gap="4px" style={{width: 220, textAlign: 'right'}}>
                 <TYPE.smallGray fontSize={14}>Votes Against:</TYPE.smallGray>
                 <TYPE.mediumHeader>
                   {toNumber(voteAgainst)} &nbsp;MATTER
@@ -341,7 +363,7 @@ export default function GovernancePageDetail({
             <AutoColumn gap="24px" style={{ maxWidth: 468, margin: '4px auto' }} justify="center">
               <TYPE.mediumHeader textAlign="center">Make Your Decision</TYPE.mediumHeader>
               <TYPE.small textAlign="center">Time left : {timeLeft}</TYPE.small>
-              <VoteOptionWrapper style={{ padding: '0 20px' }}>
+              <VoteOptionWrapper style={{ padding: '0 20px',marginBottom: -15, fontSize: 12 }}>
                 <span>My votes: {toNumber(userStaking.totalYes)}</span>
                 <span>My votes: {toNumber(userStaking.totalNo)}</span>
               </VoteOptionWrapper>
@@ -357,27 +379,27 @@ export default function GovernancePageDetail({
                   </TYPE.small>
                 </VoteOptionCard>
               </VoteOptionWrapper>
-
-              <div style={{ width: 'calc(100% - 40px)' }}>
-                <CurrencyInputPanel
-                  value={voteValue}
-                  onUserInput={value => {
-                    setVoteValue(value)
-                  }}
-                  onMax={() => {
-                    setVoteValue(balance ? balance.toSignificant() : '')
-                  }}
-                  showMaxButton={true}
-                  currency={GOVERNANCE_TOKEN}
-                  // pair={dummyPair}
-                  label="Amount"
-                  disableCurrencySelect={true}
-                  customBalanceText={'Balance: '}
-                  id="stake-vote-token"
-                  hideSelect={true}
-                />
-              </div>
-
+              {data.status === StatusOption.Live && (
+                <div style={{ width: 'calc(100% - 40px)' }}>
+                  <CurrencyInputPanel
+                    value={voteValue}
+                    onUserInput={value => {
+                      setVoteValue(value)
+                    }}
+                    onMax={() => {
+                      setVoteValue(balance ? balance.toSignificant() : '')
+                    }}
+                    showMaxButton={true}
+                    currency={GOVERNANCE_TOKEN}
+                    // pair={dummyPair}
+                    label="Amount"
+                    disableCurrencySelect={true}
+                    customBalanceText={'Balance: '}
+                    id="stake-vote-token"
+                    hideSelect={true}
+                  />
+                </div>
+              )}
               <TYPE.smallGray textAlign="center">
                 {selected === VoteOption.FOR ? contents?.agreeFor : contents?.againstFor}
               </TYPE.smallGray>
