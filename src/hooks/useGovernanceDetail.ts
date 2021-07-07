@@ -1,6 +1,9 @@
+import { useWeb3React } from '@web3-react/core'
+import { TransactionResponse } from '@ethersproject/providers'
+import { useMemo, useRef } from 'react'
 import { useGovernanceContract } from './useContract'
 import { useSingleCallResult, useSingleContractMultipleData } from '../state/multicall/hooks'
-import { useWeb3React } from '@web3-react/core'
+import { calculateGasMargin } from 'utils'
 
 interface GovernanceContent {
   summary: string
@@ -70,7 +73,7 @@ export function useGovernanceCount(): number | undefined {
   return undefined
 }
 
-export function useGovernanceList(): GovernanceData[] | undefined {
+export function useGovernanceList(): { list: GovernanceData[] | undefined; loading: boolean } {
   const contact = useGovernanceContract()
   const proposeCount = useGovernanceCount()
   const proposeIndexes = []
@@ -79,35 +82,41 @@ export function useGovernanceList(): GovernanceData[] | undefined {
   }
   const proposesListRes = useSingleContractMultipleData(contact, 'proposes', proposeIndexes)
   //const resultsRes = useSingleCallResult(contact, 'getResult', [index])
+  const isLoading = useRef(true)
+  const list = useMemo(
+    () =>
+      proposesListRes.map(({ result, loading }, index) => {
+        isLoading.current = loading
+        const title: string = result?.subject
+        const creator: string = result?.creator
+        const timeLeft: string = result?.endTime.toString()
+        const voteFor: string = result?.yes.toString()
+        const voteAgainst: string = result?.no.toString()
+        const totalVotes: string = result?.totalStake.toString()
+        const summary: string = result ? JSON.parse(result?.content).summary : ''
+        const details: string = result ? JSON.parse(result?.content).details : ''
+        const agreeFor: string = result ? JSON.parse(result?.content).agreeFor : ''
+        const againstFor: string = result ? JSON.parse(result?.content).againstFor : ''
 
-  return proposesListRes.map(({ result }, index) => {
-    const title: string = result?.subject
-    const creator: string = result?.creator
-    const timeLeft: string = result?.endTime.toString()
-    const voteFor: string = result?.yes.toString()
-    const voteAgainst: string = result?.no.toString()
-    const totalVotes: string = result?.totalStake.toString()
-    const summary: string = result ? JSON.parse(result?.content).summary : ''
-    const details: string = result ? JSON.parse(result?.content).details : ''
-    const agreeFor: string = result ? JSON.parse(result?.content).agreeFor : ''
-    const againstFor: string = result ? JSON.parse(result?.content).againstFor : ''
-
-    return {
-      id: index.toString(),
-      title,
-      creator,
-      timeLeft,
-      voteFor,
-      voteAgainst,
-      totalVotes,
-      contents: {
-        summary,
-        details,
-        agreeFor,
-        againstFor
-      }
-    }
-  })
+        return {
+          id: index.toString(),
+          title,
+          creator,
+          timeLeft,
+          voteFor,
+          voteAgainst,
+          totalVotes,
+          contents: {
+            summary,
+            details,
+            agreeFor,
+            againstFor
+          }
+        }
+      }),
+    [proposesListRes]
+  )
+  return { list, loading: isLoading.current }
 }
 
 export function useUserStaking(proposeid: string | number | undefined): Users {
@@ -117,11 +126,30 @@ export function useUserStaking(proposeid: string | number | undefined): Users {
 
   const res = usersRes.result
 
-  const ret = {
-    totalNo: res ? res.totalNo.toString() : '',
-    totalStake: res ? res.totalStake.toString() : '',
-    totalYes: res ? res.totalYes.toString() : ''
-  }
+  const ret = useMemo(
+    () => ({
+      totalNo: res ? res.totalNo.toString() : '',
+      totalStake: res ? res.totalStake.toString() : '',
+      totalYes: res ? res.totalYes.toString() : ''
+    }),
+    [res]
+  )
 
   return ret
+}
+
+export function useGovernanceCreation() {
+  const governanceContract = useGovernanceContract()
+
+  const estimate = governanceContract?.estimateGas.propose
+  const method: (...args: any) => Promise<TransactionResponse> = governanceContract?.propose
+  return useMemo(() => {
+    if (!estimate) return undefined
+    return (args: any[]) =>
+      estimate(...args, {}).then(estimatedGasLimit =>
+        method(...args, {
+          gasLimit: calculateGasMargin(estimatedGasLimit)
+        })
+      )
+  }, [estimate, method])
 }

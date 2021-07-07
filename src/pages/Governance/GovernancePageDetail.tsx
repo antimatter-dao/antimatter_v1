@@ -24,6 +24,7 @@ import { useGovernanceContract } from 'hooks/useContract'
 import { useTransactionAdder } from 'state/transactions/hooks'
 import { TransactionResponse } from '@ethersproject/abstract-provider'
 import { RouteComponentProps, useHistory } from 'react-router-dom'
+import { Timer } from 'components/Timer/intex'
 
 enum VoteOption {
   FOR = 'for',
@@ -122,11 +123,11 @@ export default function GovernancePageDetail({
   const [txHash, setTxHash] = useState<string>('')
   const [NeutralSubmitted, setNeutralSubmitted] = useState(false)
   const [voteValue, setVoteValue] = useState('')
+  const history = useHistory()
   const { data } = useGovernanceDetails(governanceIndex ?? '')
   const balance = useCurrencyBalance(account ?? undefined, GOVERNANCE_TOKEN)
   const contact = useGovernanceContract()
   const addTransaction = useTransactionAdder()
-  const history = useHistory()
   const userStaking = useUserStaking(governanceIndex)
 
   const inputValue = useMemo(() => {
@@ -175,6 +176,8 @@ export default function GovernancePageDetail({
       setTxHash(response.hash)
     })
   }, [contact, inputValue, governanceIndex,addTransaction,selected])
+
+  const handleBackClick = useCallback(() => history.push('/governance'), [history])
 
   const handleSelect = useCallback(
     (option: VoteOption) => () => {
@@ -292,16 +295,14 @@ export default function GovernancePageDetail({
       <Wrapper>
         <RowBetween>
           <HideSmall>
-            <ButtonEmpty width="106px" color={theme.text1} onClick={()=> {
-              history.replace('/governance')
-            }}>
+            <ButtonEmpty width="106px" color={theme.text1} onClick={handleBackClick}>
               <ChevronLeft style={{ marginRight: 16 }} />
               Back
             </ButtonEmpty>
           </HideSmall>
           <Live gray={ StatusOption.Live !== status ? "gray" : ''}>{status}</Live>
           <ShowSmall>
-            <ButtonEmpty width="auto" padding="0">
+            <ButtonEmpty width="auto" padding="0" onClick={handleBackClick}>
               <X color={theme.text3} size={24} />
             </ButtonEmpty>
           </ShowSmall>
@@ -362,7 +363,9 @@ export default function GovernancePageDetail({
           <GradientCard>
             <AutoColumn gap="24px" style={{ maxWidth: 468, margin: '4px auto' }} justify="center">
               <TYPE.mediumHeader textAlign="center">Make Your Decision</TYPE.mediumHeader>
-              <TYPE.small textAlign="center">Time left : {timeLeft}</TYPE.small>
+              <TYPE.small textAlign="center">
+                Time left : <Timer timer={+timeLeft} onZero={() => {}} />
+              </TYPE.small>
               <VoteOptionWrapper style={{ padding: '0 20px',marginBottom: -15, fontSize: 12 }}>
                 <span>My votes: {toNumber(userStaking.totalYes)}</span>
                 <span>My votes: {toNumber(userStaking.totalNo)}</span>

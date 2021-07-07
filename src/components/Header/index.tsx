@@ -1,7 +1,7 @@
 import { ChainId, TokenAmount } from '@uniswap/sdk'
 import React from 'react'
 import { Check, ChevronDown } from 'react-feather'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import styled from 'styled-components'
 // import { useTranslation } from 'react-i18next'
 import { darken } from 'polished'
@@ -440,6 +440,7 @@ const MobileHeader = styled.header`
 
 export default function Header() {
   const { account, chainId } = useActiveWeb3React()
+  const { pathname } = useLocation()
 
   const aggregateBalance: TokenAmount | undefined = useAggregateUniBalance()
 
@@ -453,49 +454,51 @@ export default function Header() {
         <Link to={'/'}>
           <StyledLogo />
         </Link>
-        <HeaderLinks>
-          {tabs.map(({ title, route, subTab }) => {
-            if (subTab) {
+        {!pathname.startsWith('/governance') && (
+          <HeaderLinks>
+            {tabs.map(({ title, route, subTab }) => {
+              if (subTab) {
+                return (
+                  <StyledDropdown key={title}>
+                    {title}
+                    <ChevronDown size={15} />
+                    <Dropdown>
+                      {subTab.map(({ title, route, link, titleContent }) => {
+                        return link ? (
+                          <ExternalLink href={link} key={title}>
+                            {titleContent ?? title}
+                          </ExternalLink>
+                        ) : route ? (
+                          <NavLink to={route} key={title}>
+                            {titleContent ?? title}
+                          </NavLink>
+                        ) : null
+                      })}
+                    </Dropdown>
+                  </StyledDropdown>
+                )
+              }
+              if (route === 'option_exercise') {
+                return (
+                  <StyledNavLink
+                    key={route}
+                    to={`/${route}`}
+                    isActive={(match, { pathname }) =>
+                      Boolean(match) || pathname.startsWith('/generate') || pathname.startsWith('/redeem')
+                    }
+                  >
+                    {title}
+                  </StyledNavLink>
+                )
+              }
               return (
-                <StyledDropdown key={title}>
-                  {title}
-                  <ChevronDown size={15} />
-                  <Dropdown>
-                    {subTab.map(({ title, route, link, titleContent }) => {
-                      return link ? (
-                        <ExternalLink href={link} key={title}>
-                          {titleContent ?? title}
-                        </ExternalLink>
-                      ) : route ? (
-                        <NavLink to={route} key={title}>
-                          {titleContent ?? title}
-                        </NavLink>
-                      ) : null
-                    })}
-                  </Dropdown>
-                </StyledDropdown>
-              )
-            }
-            if (route === 'option_exercise') {
-              return (
-                <StyledNavLink
-                  key={route}
-                  to={`/${route}`}
-                  isActive={(match, { pathname }) =>
-                    Boolean(match) || pathname.startsWith('/generate') || pathname.startsWith('/redeem')
-                  }
-                >
+                <StyledNavLink id={`stake-nav-link`} to={'/' + route} key={route}>
                   {title}
                 </StyledNavLink>
               )
-            }
-            return (
-              <StyledNavLink id={`stake-nav-link`} to={'/' + route} key={route}>
-                {title}
-              </StyledNavLink>
-            )
-          })}
-        </HeaderLinks>
+            })}
+          </HeaderLinks>
+        )}
         <div style={{ paddingLeft: 8, display: 'flex', alignItems: 'center', marginLeft: 'auto', marginRight: '2rem' }}>
           <HeaderControls>
             <HeaderElement show={!!account}>
