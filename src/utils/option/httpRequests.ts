@@ -69,7 +69,7 @@ export function getUnderlyingList(
   chainId: ChainId | undefined,
   errorFunction: () => void
 ) {
-  const request = new Request(domain + '/app/getUnderlyingList', {
+  const request = new Request(domain + '/app/getUnderlyingList?chainId=' + chainId, {
     method: 'GET',
     headers
   })
@@ -84,6 +84,7 @@ export function getUnderlyingList(
       }
     })
     .then(response => {
+      console.log(999, response)
       if (response.data.underlyingList && chainId) {
         const set = new Set()
         const list = response.data.underlyingList.reduce(
