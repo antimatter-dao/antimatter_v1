@@ -67,7 +67,7 @@ const HeaderWrapper = styled.div`
   ${({ theme }) => theme.flexRowNoWrap}
   ${({ theme }) => theme.mediaWidth.upToSmall`
   height:0;
-  overflow: hidden
+  // overflow: hidden
   `}
 `
 

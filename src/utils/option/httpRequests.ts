@@ -84,7 +84,6 @@ export function getUnderlyingList(
       }
     })
     .then(response => {
-      console.log(999, response)
       if (response.data.underlyingList && chainId) {
         const set = new Set()
         const list = response.data.underlyingList.reduce(
