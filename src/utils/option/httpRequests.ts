@@ -31,7 +31,7 @@ export interface HttpHandlingFunctions {
   pendingCompleteFunction: () => void
 }
 
-const domain = 'https://testapi.antimatter.finance'
+const domain = 'https://apiv1.antimatter.finance'
 const headers = { 'content-type': 'application/json', accept: 'application/json' }
 
 export function getDexTradeList(
